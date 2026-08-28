@@ -11,7 +11,7 @@ busca sequencial** conforme a base de produtos cresce.
 | Matrícula   | Nome                            |
 | ----------- | ------------------------------- |
 | 231011328   | Felipe de Aquino Campelo        |
-| - | Arthur Palhares Ferreira Silva  |
+| 232000688 | Arthur Palhares Ferreira Silva  |
 
 ## Descrição
 
