@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Testes / ferramentas
+.pytest_cache/
+.coverage
+
+# Sistema
+.DS_Store
