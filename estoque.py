@@ -1,5 +1,11 @@
+import csv
+import os
+
 TAMANHO_MIN_CODIGO = 8
 TAMANHO_MAX_CODIGO = 14
+
+CAMINHO_CSV_PADRAO = "produtos.csv"
+CABECALHO_CSV = ["codigo_barras", "nome", "quantidade", "preco"]
 
 
 class Produto:
@@ -49,3 +55,36 @@ def validar_produto(produto):
         raise ValueError("O preco deve ser um numero.")
     if produto.preco < 0:
         raise ValueError("O preco nao pode ser negativo.")
+
+
+def carregar_produtos(caminho=CAMINHO_CSV_PADRAO):
+    if not os.path.exists(caminho):
+        return []
+
+    produtos = []
+    with open(caminho, newline="", encoding="utf-8") as arquivo:
+        leitor = csv.DictReader(arquivo)
+        for linha in leitor:
+            codigo = (linha.get("codigo_barras") or "").strip()
+            if not codigo:
+                continue
+            produtos.append(Produto(
+                codigo,
+                (linha.get("nome") or "").strip(),
+                int(linha["quantidade"]),
+                float(linha["preco"]),
+            ))
+    return produtos
+
+
+def salvar_produtos(caminho, produtos):
+    with open(caminho, "w", newline="", encoding="utf-8") as arquivo:
+        escritor = csv.writer(arquivo)
+        escritor.writerow(CABECALHO_CSV)
+        for produto in produtos:
+            escritor.writerow([
+                produto.codigo_barras,
+                produto.nome,
+                produto.quantidade,
+                f"{produto.preco:.2f}",
+            ])
