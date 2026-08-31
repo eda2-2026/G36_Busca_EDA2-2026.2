@@ -9,6 +9,8 @@ TAMANHO_MAX_CODIGO = 14
 CAMINHO_CSV_PADRAO = "produtos.csv"
 CABECALHO_CSV = ["codigo_barras", "nome", "quantidade", "preco"]
 
+LIMITE_ESTOQUE_BAIXO_PADRAO = 10
+
 
 class Produto:
     def __init__(self, codigo_barras, nome, quantidade, preco):
@@ -105,3 +107,77 @@ def criar_indice_hash(produtos):
 def buscar_por_hash(tabela_hash, codigo_barras):
     validar_codigo_barras(codigo_barras)
     return tabela_hash.buscar(codigo_barras)
+
+
+def _validar_quantidade_movimento(quantidade, rotulo):
+    if isinstance(quantidade, bool) or not isinstance(quantidade, int):
+        raise ValueError(f"A quantidade de {rotulo} deve ser um numero inteiro.")
+    if quantidade <= 0:
+        raise ValueError(f"A quantidade de {rotulo} deve ser maior que zero.")
+
+
+class Estoque:
+    def __init__(self, limite_estoque_baixo=LIMITE_ESTOQUE_BAIXO_PADRAO):
+        self.tabela = TabelaHash()
+        self.limite_estoque_baixo = limite_estoque_baixo
+
+    def cadastrar(self, codigo_barras, nome, quantidade, preco):
+        produto = Produto(codigo_barras, nome, quantidade, preco)
+        validar_produto(produto)
+
+        existente, _ = self.tabela.buscar(codigo_barras)
+        if existente is not None:
+            raise ValueError("Ja existe um produto com esse codigo de barras.")
+
+        self.tabela.inserir(codigo_barras, produto)
+        return produto
+
+    def buscar(self, codigo_barras):
+        validar_codigo_barras(codigo_barras)
+        return self.tabela.buscar(codigo_barras)
+
+    def registrar_entrada(self, codigo_barras, quantidade):
+        _validar_quantidade_movimento(quantidade, "entrada")
+        produto = self._obter(codigo_barras)
+        produto.quantidade += quantidade
+        return produto
+
+    def registrar_saida(self, codigo_barras, quantidade):
+        _validar_quantidade_movimento(quantidade, "saida")
+        produto = self._obter(codigo_barras)
+        if quantidade > produto.quantidade:
+            raise ValueError("Quantidade de saida maior que o saldo em estoque.")
+        produto.quantidade -= quantidade
+        return produto
+
+    def remover(self, codigo_barras):
+        validar_codigo_barras(codigo_barras)
+        produto, _ = self.tabela.remover(codigo_barras)
+        return produto is not None
+
+    def listar(self):
+        return sorted(self.tabela.valores(), key=lambda produto: produto.codigo_barras)
+
+    def alertas_estoque_baixo(self):
+        return [
+            produto for produto in self.listar()
+            if produto.quantidade <= self.limite_estoque_baixo
+        ]
+
+    def carregar(self, caminho=CAMINHO_CSV_PADRAO):
+        produtos = carregar_produtos(caminho)
+        self.tabela = TabelaHash()
+        for produto in produtos:
+            validar_produto(produto)
+            self.tabela.inserir(produto.codigo_barras, produto)
+        return len(produtos)
+
+    def salvar(self, caminho=CAMINHO_CSV_PADRAO):
+        salvar_produtos(caminho, self.listar())
+
+    def _obter(self, codigo_barras):
+        validar_codigo_barras(codigo_barras)
+        produto, _ = self.tabela.buscar(codigo_barras)
+        if produto is None:
+            raise ValueError("Produto nao encontrado.")
+        return produto
