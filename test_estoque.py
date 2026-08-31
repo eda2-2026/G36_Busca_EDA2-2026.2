@@ -1,6 +1,12 @@
 import pytest
 
-from estoque import Produto, validar_codigo_barras, validar_produto
+from estoque import (
+    Produto,
+    buscar_por_hash,
+    criar_indice_hash,
+    validar_codigo_barras,
+    validar_produto,
+)
 from busca_sequencial import buscar_sequencial
 
 
@@ -86,3 +92,23 @@ def test_busca_sequencial_lista_vazia():
     encontrado, comparacoes = buscar_sequencial([], "7891234567895")
     assert encontrado is None
     assert comparacoes == 0
+
+
+def test_cria_indice_hash_com_produtos():
+    produtos = fazer_produtos()
+
+    indice = criar_indice_hash(produtos)
+    encontrado, comparacoes = buscar_por_hash(indice, "7890000000017")
+
+    assert encontrado is produtos[1]
+    assert comparacoes >= 1
+
+
+def test_busca_hash_e_sequencial_encontram_mesmo_produto():
+    produtos = fazer_produtos()
+    indice = criar_indice_hash(produtos)
+
+    encontrado_hash, _ = buscar_por_hash(indice, "0788020123456")
+    encontrado_sequencial, _ = buscar_sequencial(produtos, "0788020123456")
+
+    assert encontrado_hash is encontrado_sequencial

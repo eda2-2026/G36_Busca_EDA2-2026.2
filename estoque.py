@@ -1,6 +1,8 @@
 import csv
 import os
 
+from tabela_hash import TabelaHash
+
 TAMANHO_MIN_CODIGO = 8
 TAMANHO_MAX_CODIGO = 14
 
@@ -88,3 +90,18 @@ def salvar_produtos(caminho, produtos):
                 produto.quantidade,
                 f"{produto.preco:.2f}",
             ])
+
+
+def criar_indice_hash(produtos):
+    tabela_hash = TabelaHash()
+
+    for produto in produtos:
+        validar_produto(produto)
+        tabela_hash.inserir(produto.codigo_barras, produto)
+
+    return tabela_hash
+
+
+def buscar_por_hash(tabela_hash, codigo_barras):
+    validar_codigo_barras(codigo_barras)
+    return tabela_hash.buscar(codigo_barras)
