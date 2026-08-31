@@ -1,8 +1,10 @@
 import pytest
 
 from estoque import (
+    Estoque,
     Produto,
     buscar_por_hash,
+    carregar_produtos,
     criar_indice_hash,
     validar_codigo_barras,
     validar_produto,
@@ -112,3 +114,113 @@ def test_busca_hash_e_sequencial_encontram_mesmo_produto():
     encontrado_sequencial, _ = buscar_sequencial(produtos, "0788020123456")
 
     assert encontrado_hash is encontrado_sequencial
+
+
+def estoque_povoado():
+    estoque = Estoque(limite_estoque_baixo=10)
+    for produto in fazer_produtos():
+        estoque.cadastrar(
+            produto.codigo_barras, produto.nome, produto.quantidade, produto.preco
+        )
+    return estoque
+
+
+def test_cadastrar_e_buscar():
+    estoque = estoque_povoado()
+    encontrado, comparacoes = estoque.buscar("7890000000017")
+    assert encontrado.nome == "Feijao"
+    assert comparacoes >= 1
+
+
+def test_cadastrar_codigo_duplicado_falha():
+    estoque = estoque_povoado()
+    with pytest.raises(ValueError):
+        estoque.cadastrar("7891234567895", "Arroz outro", 1, 1.0)
+
+
+def test_cadastrar_produto_invalido_falha():
+    estoque = Estoque()
+    with pytest.raises(ValueError):
+        estoque.cadastrar("7891234567895", "Arroz", -5, 1.0)
+
+
+def test_registrar_entrada_soma_quantidade():
+    estoque = estoque_povoado()
+    produto = estoque.registrar_entrada("7891234567895", 10)
+    assert produto.quantidade == 50
+
+
+def test_registrar_saida_subtrai_quantidade():
+    estoque = estoque_povoado()
+    produto = estoque.registrar_saida("7891234567895", 15)
+    assert produto.quantidade == 25
+
+
+def test_registrar_saida_maior_que_saldo_falha_e_mantem_saldo():
+    estoque = estoque_povoado()
+    with pytest.raises(ValueError):
+        estoque.registrar_saida("7890000000017", 100)
+    produto, _ = estoque.buscar("7890000000017")
+    assert produto.quantidade == 8
+
+
+@pytest.mark.parametrize("quantidade", [0, -3, 2.5, True])
+def test_movimento_com_quantidade_invalida_falha(quantidade):
+    estoque = estoque_povoado()
+    with pytest.raises(ValueError):
+        estoque.registrar_entrada("7891234567895", quantidade)
+
+
+def test_movimento_em_produto_inexistente_falha():
+    estoque = Estoque()
+    with pytest.raises(ValueError):
+        estoque.registrar_saida("7891234567895", 1)
+
+
+def test_remover_produto():
+    estoque = estoque_povoado()
+    assert estoque.remover("7891234567895") is True
+    encontrado, _ = estoque.buscar("7891234567895")
+    assert encontrado is None
+    assert estoque.remover("7891234567895") is False
+
+
+def test_listar_retorna_ordenado_por_codigo():
+    estoque = estoque_povoado()
+    codigos = [produto.codigo_barras for produto in estoque.listar()]
+    assert codigos == sorted(codigos)
+    assert len(codigos) == 3
+
+
+def test_alertas_estoque_baixo():
+    estoque = Estoque(limite_estoque_baixo=10)
+    estoque.cadastrar("7891234567895", "Acima", 11, 1.0)
+    estoque.cadastrar("7890000000017", "NoLimite", 10, 1.0)
+    estoque.cadastrar("0788020123456", "Abaixo", 3, 1.0)
+
+    nomes = [produto.nome for produto in estoque.alertas_estoque_baixo()]
+    assert "Abaixo" in nomes
+    assert "NoLimite" in nomes
+    assert "Acima" not in nomes
+
+
+def test_carregar_e_salvar_round_trip(tmp_path):
+    caminho = tmp_path / "produtos.csv"
+    estoque = estoque_povoado()
+    estoque.salvar(caminho)
+
+    outro = Estoque()
+    total = outro.carregar(caminho)
+
+    assert total == 3
+    assert outro.listar() == estoque.listar()
+    recarregado, _ = outro.buscar("0788020123456")
+    assert recarregado.codigo_barras == "0788020123456"
+
+
+def test_carregar_arquivo_inexistente_retorna_vazio(tmp_path):
+    estoque = Estoque()
+    total = estoque.carregar(tmp_path / "nao_existe.csv")
+    assert total == 0
+    assert estoque.listar() == []
+    assert carregar_produtos(tmp_path / "nao_existe.csv") == []
