@@ -7,6 +7,10 @@ O objetivo do trabalho e aplicar os conceitos de busca estudados em EDA2, implem
 uma tabela hash e comparando seu desempenho com a busca sequencial conforme a base de
 produtos cresce.
 
+## Video de apresentacao
+
+https://drive.google.com/drive/folders/1PgABmpENK7Y2KXVy9O0XXzNN2zDZ1xK-?usp=share_link
+
 ## Alunos
 
 | Matrícula   | Nome                            |
