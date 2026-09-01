@@ -11,3 +11,11 @@ venv/
 
 # Sistema
 .DS_Store
+
+# Uso local (nao versionar)
+roteiro.md
+roteiro_video.md
+demo.csv
+teste.csv
+/comparacoes.png
+/tempo.png
